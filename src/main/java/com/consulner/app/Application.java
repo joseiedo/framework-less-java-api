@@ -9,15 +9,20 @@ import java.net.InetSocketAddress;
 public class Application {
 
     public static void main(String[] args) throws IOException {
-        int serverPort = 8000;
+        int serverPort = 8080;
 
         HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
         server.createContext("/api/hello", (exchange -> {
-            String response = "Hello!";
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            OutputStream output = exchange.getResponseBody();
-            output.write(response.getBytes());
-            output.flush();
+
+            if ("GET".equals(exchange.getRequestMethod())) {
+                String respText = "Hello!";
+                exchange.sendResponseHeaders(200, respText.getBytes().length);
+                OutputStream output = exchange.getResponseBody();
+                output.write(respText.getBytes());
+                output.flush();
+            } else {
+                exchange.sendResponseHeaders(405, -1);// 405 Method Not Allowed
+            }
             exchange.close();
         }));
         server.setExecutor(null);
