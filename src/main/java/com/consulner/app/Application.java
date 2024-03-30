@@ -1,6 +1,8 @@
 package com.consulner.app;
 
 import com.consulner.app.api.ApiUtils;
+import com.sun.net.httpserver.BasicAuthenticator;
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -15,7 +17,7 @@ public class Application {
         int serverPort = 8080;
 
         HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
-        server.createContext("/api/hello", (exchange -> {
+        HttpContext context = server.createContext("/api/hello", (exchange -> {
 
             if ("GET".equals(exchange.getRequestMethod())) {
                 Map<String, List<String>> params = ApiUtils.splitQuery(exchange.getRequestURI().getRawQuery());
@@ -32,6 +34,13 @@ public class Application {
             }
             exchange.close();
         }));
+
+        context.setAuthenticator(new BasicAuthenticator("secure-realm") {
+            @Override
+            public boolean checkCredentials(String username, String password) {
+                return username.equals("admin") && password.equals("admin");
+            }
+        });
         server.setExecutor(null);
         server.start();
     }
