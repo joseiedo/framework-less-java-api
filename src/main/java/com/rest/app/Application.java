@@ -2,6 +2,7 @@ package com.rest.app;
 
 import com.rest.app.controller.user.register.RegisterUserController;
 import com.rest.app.utils.ApiUtils;
+import com.rest.app.utils.Path;
 import com.sun.net.httpserver.BasicAuthenticator;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
@@ -20,10 +21,8 @@ public class Application {
         int serverPort = 8080;
         HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
 
-        RegisterUserController registerUserController = new RegisterUserController(getUserService(), getObjectMapper(),
-                getErrorHandler());
-
-        server.createContext("/api/users/register", registerUserController::handle);
+        RegisterUserController registerUserController = new RegisterUserController(getUserService(), getObjectMapper(), getErrorHandler());
+        server.createContext(RegisterUserController.class.getAnnotation(Path.class).value(), registerUserController::handle);
 
         HttpContext context = server.createContext("/api/hello", (exchange -> {
 

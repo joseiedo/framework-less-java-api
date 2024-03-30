@@ -8,6 +8,7 @@ import com.rest.app.domain.user.NewUser;
 import com.rest.app.domain.user.UserService;
 import com.rest.app.utils.Constants;
 import com.rest.app.utils.HttpStatusCode;
+import com.rest.app.utils.Path;
 import com.rest.app.utils.ResponseEntity;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+@Path("/api/users/register")
 public class RegisterUserController extends Controller {
 
     private final UserService userService;
@@ -29,7 +31,7 @@ public class RegisterUserController extends Controller {
     protected void execute(HttpExchange exchange) throws IOException {
         byte[] response;
         if ("POST".equals(exchange.getRequestMethod())) {
-            ResponseEntity e = doPost(exchange.getRequestBody());
+            ResponseEntity<RegistrationResponse> e = doPost(exchange.getRequestBody());
             exchange.getResponseHeaders().putAll(e.getHeaders());
             exchange.sendResponseHeaders(e.getHttpStatusCode().getCode(), 0);
             response = super.writeResponse(e.getBody());
