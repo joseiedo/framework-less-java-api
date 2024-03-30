@@ -1,5 +1,6 @@
 package com.rest.app;
 
+import com.rest.app.config.Injector;
 import com.rest.app.controller.user.register.RegisterUserController;
 import com.rest.app.utils.ApiUtils;
 import com.rest.app.utils.Path;
@@ -13,15 +14,17 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 
-import static com.rest.app.config.UserBeansConfiguration.*;
-
 public class Application {
 
     public static void main(String[] args) throws IOException {
         int serverPort = 8080;
         HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
 
-        RegisterUserController registerUserController = new RegisterUserController(getUserService(), getObjectMapper(), getErrorHandler());
+        Injector.startApplication(Application.class);
+        RegisterUserController registerUserController = Injector.getService(RegisterUserController.class);
+        if (registerUserController == null) {
+            throw new RuntimeException("An error occurred while injecting RegisterUserController");
+        }
         server.createContext(RegisterUserController.class.getAnnotation(Path.class).value(), registerUserController::handle);
 
         HttpContext context = server.createContext("/api/hello", (exchange -> {

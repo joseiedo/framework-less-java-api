@@ -1,14 +1,6 @@
 package com.rest.app.domain.user;
 
-import lombok.AllArgsConstructor;
+public interface UserService {
 
-@AllArgsConstructor
-public class UserService {
-
-    private final UserRepository userRepository;
-
-    public String create(NewUser user) {
-        return userRepository.create(user);
-    }
-
+    String create(NewUser user);
 }
