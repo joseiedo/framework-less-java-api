@@ -9,9 +9,15 @@ import org.burningwave.core.classes.SearchConfig;
 
 import javax.management.RuntimeErrorException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static org.burningwave.core.classes.ClassHunter.SearchResult;
+import static org.burningwave.core.classes.SearchConfig.forResources;
 
 
 /**
@@ -21,7 +27,9 @@ import java.util.stream.Collectors;
  */
 public class Injector {
     private Map<Class<?>, Class<?>> diMap;
-    private Map<Class<?>, Object> applicationScope;
+    private final Map<Class<?>, Object> applicationScope;
+
+    private static final Logger logger = Logger.getLogger(Injector.class.getName());
 
     private static Injector injector;
 
@@ -31,11 +39,6 @@ public class Injector {
         applicationScope = new HashMap<>();
     }
 
-    /**
-     * Start application
-     *
-     * @param mainClass
-     */
     public static void startApplication(Class<?> mainClass) {
         try {
             synchronized (Injector.class) {
@@ -45,15 +48,15 @@ public class Injector {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.log(java.util.logging.Level.SEVERE, "Error occurred while injecting classes", ex);
         }
     }
 
-    public static <T> T getService(Class<T> classz) {
+    public static <T> T getService(Class<T> cls) {
         try {
-            return injector.getBeanInstance(classz);
+            return injector.getBeanInstance(cls);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error occurred while getting service instance", e);
         }
         return null;
     }
@@ -62,40 +65,55 @@ public class Injector {
      * initialize the injector framework
      */
     private void initFramework(Class<?> mainClass)
-            throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-        Class<?>[] classes = getClasses(mainClass.getPackage().getName(), true);
-        ComponentContainer componentConatiner = ComponentContainer.getInstance();
-        ClassHunter classHunter = componentConatiner.getClassHunter();
-        String packageRelPath = mainClass.getPackage().getName().replace(".", "/");
-        try (ClassHunter.SearchResult result = classHunter.findBy(
-                SearchConfig.forResources(
-                        packageRelPath
-                ).by(ClassCriteria.create().allThoseThatMatch(cls -> {
-                    return cls.getAnnotation(com.rest.app.utils.Component.class) != null;
-                }))
-        )) {
-            Collection<Class<?>> types = result.getClasses();
-            for (Class<?> implementationClass : types) {
-                Class<?>[] interfaces = implementationClass.getInterfaces();
-                if (interfaces.length == 0) {
-                    diMap.put(implementationClass, implementationClass);
-                } else {
-                    for (Class<?> iface : interfaces) {
-                        diMap.put(implementationClass, iface);
-                    }
-                }
-            }
+            throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException, NoSuchMethodException, InvocationTargetException {
 
-            for (Class<?> classz : classes) {
-                if (classz.isAnnotationPresent(Component.class)) {
-                    Object classInstance = classz.newInstance();
-                    applicationScope.put(classz, classInstance);
-                    InjectionUtil.autowire(this, classz, classInstance);
-                }
+        // Set up the class hunter
+        Class<?>[] classes = getClasses(mainClass.getPackage().getName(), true);
+        ClassHunter classHunter = ComponentContainer.getInstance().getClassHunter();
+        String packageRelPath = mainClass.getPackage().getName().replace(".", "/");
+
+        // Get all classes with @Component annotation
+        SearchResult components = classHunter.findBy(
+                forResources(packageRelPath).by(
+                        ClassCriteria.create().allThoseThatMatch(cls -> cls.getAnnotation(Component.class) != null)
+                )
+        );
+
+        Collection<Class<?>> implementationClasses = components.getClasses();
+        updateDIMapWithImplementations(implementationClasses);
+        createAndStoreInstancesInContext(classes);
+    }
+
+    /**
+     * Updates the {@code diMap} by grouping the implementation classes by the interfaces they implement.
+     * Each implementation class is mapped to its implemented interfaces.
+     * If an implementation class does not implement any interface, it is mapped to itself.
+     *
+     * @param classes A collection of classes that are to be grouped by their implemented interfaces.
+     */
+    public void updateDIMapWithImplementations(Collection<Class<?>> classes) {
+        classes.forEach(implementationClass -> {
+            Class<?>[] interfaces = implementationClass.getInterfaces();
+            if (interfaces.length == 0) {
+                diMap.put(implementationClass, implementationClass);
+            } else {
+                Arrays.stream(interfaces).forEach(interfaceClass -> diMap.put(implementationClass, interfaceClass));
+            }
+        });
+    }
+
+
+    /**
+     * Fill the application scope with the instances of the classes with @Component annotation
+     */
+    public void createAndStoreInstancesInContext(Class<?>[] classes) throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        for (Class<?> cls : classes) {
+            if (cls.isAnnotationPresent(Component.class)) {
+                Object classInstance = cls.getDeclaredConstructor().newInstance();
+                applicationScope.put(cls, classInstance);
+                InjectionUtil.autowire(this, cls, classInstance);
             }
         }
-        ;
-
     }
 
     /**
@@ -105,14 +123,14 @@ public class Injector {
         ComponentContainer componentConatiner = ComponentContainer.getInstance();
         ClassHunter classHunter = componentConatiner.getClassHunter();
         String packageRelPath = packageName.replace(".", "/");
-        SearchConfig config = SearchConfig.forResources(
+        SearchConfig config = forResources(
                 packageRelPath
         );
         if (!recursive) {
             config.findInChildren();
         }
 
-        try (ClassHunter.SearchResult result = classHunter.findBy(config)) {
+        try (SearchResult result = classHunter.findBy(config)) {
             Collection<Class<?>> classes = result.getClasses();
             return classes.toArray(new Class[classes.size()]);
         }
@@ -124,7 +142,7 @@ public class Injector {
      * interface service
      */
     @SuppressWarnings("unchecked")
-    private <T> T getBeanInstance(Class<T> interfaceClass) throws InstantiationException, IllegalAccessException {
+    private <T> T getBeanInstance(Class<T> interfaceClass) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
         return (T) getBeanInstance(interfaceClass, null, null);
     }
 
@@ -132,7 +150,7 @@ public class Injector {
      * Overload getBeanInstance to handle qualifier and autowire by type
      */
     public <T> Object getBeanInstance(Class<T> interfaceClass, String fieldName, String qualifier)
-            throws InstantiationException, IllegalAccessException {
+            throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         Class<?> implementationClass = getImplimentationClass(interfaceClass, fieldName, qualifier);
 
         if (applicationScope.containsKey(implementationClass)) {
@@ -140,7 +158,7 @@ public class Injector {
         }
 
         synchronized (applicationScope) {
-            Object service = implementationClass.newInstance();
+            Object service = implementationClass.getDeclaredConstructor().newInstance();
             applicationScope.put(implementationClass, service);
             return service;
         }
