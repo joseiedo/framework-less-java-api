@@ -119,7 +119,7 @@ public class Injector {
     /**
      * Get all the classes for the input package
      */
-    public Class<?>[] getClasses(String packageName, boolean recursive) throws ClassNotFoundException, IOException {
+    public Class<?>[] getClasses(String packageName, boolean recursive) {
         ComponentContainer componentConatiner = ComponentContainer.getInstance();
         ClassHunter classHunter = componentConatiner.getClassHunter();
         String packageRelPath = packageName.replace(".", "/");

@@ -11,8 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-@Path("/api/users/register")
+@RestController
 @Component
+@Path("/api/users/register")
 public class RegisterUserController extends Controller {
 
     @Inject

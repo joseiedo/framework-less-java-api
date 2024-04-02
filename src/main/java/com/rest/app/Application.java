@@ -7,14 +7,34 @@ import com.rest.app.utils.Path;
 import com.sun.net.httpserver.BasicAuthenticator;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
+import org.burningwave.core.assembler.ComponentContainer;
+import org.burningwave.core.classes.ClassCriteria;
+import org.burningwave.core.classes.ClassHunter;
+import org.burningwave.core.classes.SearchConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class Application {
+
+    public static void setupEndpoints() {
+        String packageRelPath = Application.class.getPackage().getName().replace(".", "/");
+        ClassHunter classHunter = ComponentContainer.getInstance().getClassHunter();
+        ClassHunter.SearchResult endpoints = classHunter.findBy(
+                SearchConfig.forResources(packageRelPath).by(
+                        ClassCriteria.create().allThoseThatMatch(cls -> cls.isAnnotationPresent(Path.class))));
+
+        endpoints.getClasses().forEach(cls -> {
+            Arrays.stream(cls.getDeclaredMethods()).findFirst().ifPresent(method -> {
+                Path path = method.getAnnotation(Path.class);
+                System.out.println("Endpoint: " + path.value() + " Method: " + method.getName());
+            });
+        });
+    }
 
     public static void main(String[] args) throws IOException {
         int serverPort = 8080;
@@ -25,7 +45,11 @@ public class Application {
         if (registerUserController == null) {
             throw new RuntimeException("An error occurred while injecting RegisterUserController");
         }
-        server.createContext(RegisterUserController.class.getAnnotation(Path.class).value(), registerUserController::handle);
+        server.createContext(RegisterUserController.class.getAnnotation(Path.class).value(),
+                registerUserController::handle);
+
+
+//        setupEndpoints();
 
         HttpContext context = server.createContext("/api/hello", (exchange -> {
 
@@ -43,7 +67,6 @@ public class Application {
             }
             exchange.close();
         }));
-
 
         context.setAuthenticator(new BasicAuthenticator("myrealm") {
             @Override
