@@ -1,7 +1,6 @@
 package com.rest.app;
 
 import com.rest.app.config.Injector;
-import com.rest.app.controller.user.register.RegisterUserController;
 import com.rest.app.utils.ApiUtils;
 import com.rest.app.utils.Path;
 import com.sun.net.httpserver.BasicAuthenticator;
@@ -21,7 +20,7 @@ import java.util.Map;
 
 public class Application {
 
-    public static void setupEndpoints() {
+    public static void setupEndpoints(HttpServer server) {
         String packageRelPath = Application.class.getPackage().getName().replace(".", "/");
         ClassHunter classHunter = ComponentContainer.getInstance().getClassHunter();
         ClassHunter.SearchResult endpoints = classHunter.findBy(
@@ -29,9 +28,25 @@ public class Application {
                         ClassCriteria.create().allThoseThatMatch(cls -> cls.isAnnotationPresent(Path.class))));
 
         endpoints.getClasses().forEach(cls -> {
-            Arrays.stream(cls.getDeclaredMethods()).findFirst().ifPresent(method -> {
+            Arrays.stream(cls.getMethods()).forEach(method -> {
                 Path path = method.getAnnotation(Path.class);
-                System.out.println("Endpoint: " + path.value() + " Method: " + method.getName());
+
+                if (path != null) {
+                    Path classPath = cls.getAnnotation(Path.class);
+                    String endpoint = classPath != null ? classPath.value() + path.value() : path.value();
+
+                    server.createContext(endpoint, (exchange -> {
+                        try {
+                            Object controller = Injector.getService(cls);
+                            method.invoke(controller, exchange);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                        System.out.println("Endpoint: " + path.value() + " Method: " +
+                                method.getName());
+                    }));
+
+                }
             });
         });
     }
@@ -41,15 +56,8 @@ public class Application {
         HttpServer server = HttpServer.create(new InetSocketAddress(serverPort), 0);
 
         Injector.startApplication(Application.class);
-        RegisterUserController registerUserController = Injector.getService(RegisterUserController.class);
-        if (registerUserController == null) {
-            throw new RuntimeException("An error occurred while injecting RegisterUserController");
-        }
-        server.createContext(RegisterUserController.class.getAnnotation(Path.class).value(),
-                registerUserController::handle);
 
-
-//        setupEndpoints();
+        setupEndpoints(server);
 
         HttpContext context = server.createContext("/api/hello", (exchange -> {
 

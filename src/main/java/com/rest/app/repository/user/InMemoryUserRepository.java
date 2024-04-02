@@ -5,6 +5,7 @@ import com.rest.app.domain.user.User;
 import com.rest.app.domain.user.UserRepository;
 import com.rest.app.utils.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class InMemoryUserRepository implements UserRepository {
 
-    private static final Map USERS_STORE = new ConcurrentHashMap();
+    private static final Map<String, User> USERS_STORE = new ConcurrentHashMap<>();
 
     @Override
     public String create(NewUser newUser) {
@@ -25,5 +26,10 @@ public class InMemoryUserRepository implements UserRepository {
         USERS_STORE.put(newUser.getLogin(), user);
 
         return id;
+    }
+
+    @Override
+    public List<User> list() {
+        return USERS_STORE.values().stream().toList();
     }
 }
