@@ -1,9 +1,5 @@
 package com.rest.app.controller.user.register;
 
-import lombok.Value;
+record RegistrationResponse(String id) {
 
-@Value
-class RegistrationResponse {
-
-    String id;
 }

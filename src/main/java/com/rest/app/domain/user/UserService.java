@@ -1,14 +1,10 @@
 package com.rest.app.domain.user;
 
-import lombok.AllArgsConstructor;
+import java.util.List;
 
-@AllArgsConstructor
-public class UserService {
+public interface UserService {
 
-    private final UserRepository userRepository;
+    String create(NewUser user);
 
-    public String create(NewUser user) {
-        return userRepository.create(user);
-    }
-
+    List<User> list();
 }

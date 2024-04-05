@@ -1,22 +1,22 @@
 package com.rest.app.config.exceptions.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rest.app.config.ObjectMapperWrapper;
 import com.rest.app.config.exceptions.InvalidRequestException;
 import com.rest.app.config.exceptions.MethodNotAllowedException;
 import com.rest.app.config.exceptions.ResourceNotFoundException;
+import com.rest.app.utils.Component;
 import com.rest.app.utils.Constants;
+import com.rest.app.utils.Inject;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
+@Component
 public class GlobalExceptionHandler {
 
-    private final ObjectMapper objectMapper;
-
-    public GlobalExceptionHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    @Inject
+    public ObjectMapperWrapper objectMapperWrapper;
 
     public void handle(Throwable throwable, HttpExchange exchange) {
         try {
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
             exchange.getResponseHeaders().set(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON);
             ErrorResponse response = getErrorResponse(throwable, exchange);
             OutputStream responseBody = exchange.getResponseBody();
-            responseBody.write(objectMapper.writeValueAsBytes(response));
+            responseBody.write(objectMapperWrapper.getObjectMapper().writeValueAsBytes(response));
             responseBody.close();
         } catch (Exception e) {
             e.printStackTrace();

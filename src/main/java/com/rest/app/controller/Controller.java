@@ -1,8 +1,9 @@
 package com.rest.app.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rest.app.config.ObjectMapperWrapper;
 import com.rest.app.config.exceptions.ApplicationExceptions;
 import com.rest.app.config.exceptions.handler.GlobalExceptionHandler;
+import com.rest.app.utils.Inject;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import io.vavr.control.Try;
@@ -11,14 +12,12 @@ import java.io.InputStream;
 
 public abstract class Controller {
 
-    private final ObjectMapper objectMapper;
-    private final GlobalExceptionHandler exceptionHandler;
+    @Inject
+    public ObjectMapperWrapper objectMapperWrapper;
 
-    public Controller(ObjectMapper objectMapper,
-                      GlobalExceptionHandler exceptionHandler) {
-        this.objectMapper = objectMapper;
-        this.exceptionHandler = exceptionHandler;
-    }
+    @Inject
+    public GlobalExceptionHandler exceptionHandler;
+
 
     public void handle(HttpExchange exchange) {
         Try.run(() -> execute(exchange))
@@ -29,12 +28,12 @@ public abstract class Controller {
 
 
     protected <T> T readRequest(InputStream is, Class<T> type) {
-        return Try.of(() -> objectMapper.readValue(is, type))
+        return Try.of(() -> objectMapperWrapper.getObjectMapper().readValue(is, type))
                 .getOrElseThrow(ApplicationExceptions.invalidRequest());
     }
 
     protected <T> byte[] writeResponse(T response) {
-        return Try.of(() -> objectMapper.writeValueAsBytes(response))
+        return Try.of(() -> objectMapperWrapper.getObjectMapper().writeValueAsBytes(response))
                 .getOrElseThrow(ApplicationExceptions.invalidRequest());
     }
 
