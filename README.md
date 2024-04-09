@@ -3,7 +3,7 @@ This project has the educational purpose of understanding the underlying princip
 managing routes, processing data and even dependency injection without relying on any frameworks such as Spring, Quarkus, Spark etc.
 
 ## Requirements
-- Java 11
+- Java 17
 
 ## Authentication
 Basic auth with username: `admin` and password `admin`.
