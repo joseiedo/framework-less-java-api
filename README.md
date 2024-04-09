@@ -4,3 +4,23 @@ managing routes, processing data and even dependency injection without relying o
 
 ## Requirements
 - Java 11
+
+## Authentication
+Basic auth with username: `admin` and password `admin`.
+
+## Endpoints
+
+### `/api/users/register`
+Create a user.
+Payload:
+```json
+{
+  "login": "login",
+  "password": "password"
+}
+
+```
+
+
+`/api/users/list`
+List created users.

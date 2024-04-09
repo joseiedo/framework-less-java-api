@@ -1,6 +1,8 @@
 package com.rest.app.config;
 
 import com.rest.app.utils.Path;
+import com.sun.net.httpserver.BasicAuthenticator;
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -32,6 +34,10 @@ public class ServerManager {
         server.start();
     }
 
+    public void addAuthentication(){
+
+    }
+
     public void setupEndpointsInClassMethods(Class<?> cls) {
         Path pathInClass = cls.getAnnotation(Path.class);
 
@@ -57,7 +63,7 @@ public class ServerManager {
 
 
     public void setupServerContext(String endpoint, Method method, Class<?> cls) {
-        server.createContext(endpoint, (exchange -> {
+        HttpContext context = server.createContext(endpoint, (exchange -> {
             try {
                 Object controller = Injector.getService(cls);
                 method.invoke(controller, exchange);
@@ -65,6 +71,13 @@ public class ServerManager {
                 logger.severe("Error while creating endpoint for path " + endpoint + " method " + method.getName() + " in class " + cls.getName());
             }
         }));
+
+        context.setAuthenticator(new BasicAuthenticator("myrealm") {
+            @Override
+            public boolean checkCredentials(String user, String pwd) {
+                return user.equals("admin") && pwd.equals("admin");
+            }
+        });
     }
 
 

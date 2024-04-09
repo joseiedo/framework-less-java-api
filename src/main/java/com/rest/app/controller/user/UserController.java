@@ -1,4 +1,4 @@
-package com.rest.app.controller.user.register;
+package com.rest.app.controller.user;
 
 import com.rest.app.config.exceptions.ApplicationExceptions;
 import com.rest.app.controller.Controller;
@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @Component
 @Path("/api/users")
-public class RegisterUserController extends Controller {
+public class UserController extends Controller {
 
     @Inject
     public UserService userService;
@@ -62,8 +62,8 @@ public class RegisterUserController extends Controller {
         RegistrationRequest registerRequest = super.readRequest(is, RegistrationRequest.class);
 
         NewUser user = NewUser.builder()
-                .login(registerRequest.getLogin())
-                .password(PasswordEncoder.encode(registerRequest.getPassword()))
+                .login(registerRequest.login())
+                .password(PasswordEncoder.encode(registerRequest.password()))
                 .build();
 
         String userId = userService.create(user);

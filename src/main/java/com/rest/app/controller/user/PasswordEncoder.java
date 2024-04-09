@@ -1,4 +1,4 @@
-package com.rest.app.controller.user.register;
+package com.rest.app.controller.user;
 
 class PasswordEncoder {
 
