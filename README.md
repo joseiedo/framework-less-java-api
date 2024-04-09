@@ -10,7 +10,7 @@ Basic auth with username: `admin` and password `admin`.
 
 ## Endpoints
 
-### `/api/users/register`
+### POST `/api/users/register`
 Create a user.
 Payload:
 ```json
@@ -21,6 +21,5 @@ Payload:
 
 ```
 
-
-`/api/users/list`
+### GET `/api/users/list`
 List created users.
